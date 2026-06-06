@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'core/routes/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'shared/services/cart_service.dart';
+import 'services/auth_service.dart';
+import 'services/favorite_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,8 +21,12 @@ void main() {
     ),
   );
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => CartService(),  // Provider buat instance baru
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => CartService()),
+        ChangeNotifierProvider(create: (_) => FavoriteService()),
+      ],
       child: const DenioImagineApp(),
     ),
   );

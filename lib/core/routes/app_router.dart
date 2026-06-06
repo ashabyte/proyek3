@@ -28,6 +28,7 @@ import '../../features/account/edit_account_screen.dart';
 import '../../features/account/change_password_screen.dart';
 import '../../features/account/settings_screen.dart';
 import '../../features/chatbot/chatbot_ai_screen.dart';
+import '../../features/account/favorite_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../features/tema/tema_screen.dart';
 
@@ -62,6 +63,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String chatbotAi = '/chatbot-ai';
   static const String yearbookConcept = '/yearbook-concept';
+  static const String favorite = '/favorite';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -107,6 +109,10 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const AccountScreen(),
         ),
       ],
+    ),
+    GoRoute(
+      path: AppRoutes.favorite,
+      builder: (context, state) => const FavoriteScreen(),
     ),
     GoRoute(
       path: AppRoutes.printing,
@@ -160,7 +166,9 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.details,
-      builder: (context, state) => const DetailsScreen(),
+      builder: (context, state) => DetailsScreen(
+        tema: state.extra as TemaItem?,
+      ),
     ),
     GoRoute(
       path: AppRoutes.bookingUpcoming,

@@ -1,3 +1,4 @@
+import 'package:denio_imagine/core/routes/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -267,8 +268,10 @@ class AppBackButton extends StatelessWidget {
       icon: const Icon(Icons.arrow_back_ios_new, size: 20),
       color: AppColors.primary,
       onPressed: () {
-        if (context.canPop()) {
-          context.pop();
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go(AppRoutes.home);
         }
       },
     );

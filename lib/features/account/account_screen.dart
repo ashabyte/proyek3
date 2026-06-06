@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_router.dart';
+import '../../services/auth_service.dart';
+import '../../services/favorite_service.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.user;
+    final favCount = Provider.of<FavoriteService>(context).favorites.length;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -21,22 +28,45 @@ class AccountScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
+                    // Profile Photo using Container with decoration.image
                     Container(
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
                         color: const Color(0xFFB8A9E0),
-                        borderRadius: BorderRadius.circular(32),
+                        shape: BoxShape.circle,
+                        image: (user?.fotoProfil != null && user!.fotoProfil!.startsWith('http'))
+                          ? DecorationImage(
+                              image: NetworkImage(user.fotoProfil!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                       ),
-                      child: const Icon(Icons.person, size: 40, color: Colors.white),
+                      child: (user?.fotoProfil == null || !user!.fotoProfil!.startsWith('http'))
+                          ? const Icon(Icons.person, size: 40, color: Colors.white)
+                          : null,
                     ),
                     const SizedBox(width: 16),
-                    Text(
-                      'My Profile',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.name ?? 'Nama Pengguna',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            user?.email ?? 'email@example.com',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -57,7 +87,7 @@ class AccountScreen extends StatelessWidget {
                       elevation: 0,
                     ),
                     child: Text(
-                      'Edit Profiles',
+                      'Edit Profil',
                       style: GoogleFonts.dmSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -68,12 +98,19 @@ class AccountScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              _MenuItem(label: 'Password', onTap: () => context.push(AppRoutes.changePassword)),
-              _MenuItem(label: 'Account', onTap: () => context.push(AppRoutes.editAccount)),
-              _MenuItem(label: 'Settings', onTap: () => context.push(AppRoutes.settings)),
-              _MenuItem(label: 'Booking History', onTap: () => context.push(AppRoutes.bookingUpcoming)),
+              _MenuItem(
+                label: 'Favorit Saya ($favCount)',
+                onTap: () => context.push(AppRoutes.favorite),
+              ),
+              _MenuItem(label: 'Ganti Kata Sandi', onTap: () => context.push(AppRoutes.changePassword)),        
+              _MenuItem(label: 'Pengaturan Akun', onTap: () => context.push(AppRoutes.editAccount)),
+              _MenuItem(label: 'Riwayat Booking', onTap: () => context.push(AppRoutes.bookingUpcoming)),        
               _MenuItem(label: 'ChatBot AI', onTap: () => context.push(AppRoutes.chatbotAi)),
-              _MenuItem(label: 'Logout', onTap: () => _showLogoutDialog(context)),
+              _MenuItem(
+                label: 'Logout',
+                labelColor: Colors.red,
+                onTap: () => _showLogoutDialog(context, authService)
+              ),
             ],
           ),
         ),
@@ -81,16 +118,17 @@ class AccountScreen extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(context: context, builder: (_) => _LogoutDialog());
+  void _showLogoutDialog(BuildContext context, AuthService authService) {
+    showDialog(context: context, builder: (_) => _LogoutDialog(authService: authService));
   }
 }
 
 class _MenuItem extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+  final Color? labelColor;
 
-  const _MenuItem({required this.label, required this.onTap});
+  const _MenuItem({required this.label, required this.onTap, this.labelColor});
 
   @override
   Widget build(BuildContext context) {
@@ -100,16 +138,19 @@ class _MenuItem extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                label,
-                style: GoogleFonts.dmSans(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                    color: labelColor ?? AppColors.textPrimary,
+                  ),
                 ),
-              ),
+                const Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
+              ],
             ),
           ),
         ),
@@ -120,6 +161,9 @@ class _MenuItem extends StatelessWidget {
 }
 
 class _LogoutDialog extends StatelessWidget {
+  final AuthService authService;
+  const _LogoutDialog({required this.authService});
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -130,10 +174,10 @@ class _LogoutDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Are you sure?',
+            Text('Konfirmasi Keluar',
                 style: GoogleFonts.dmSans(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 10),
-            Text('Are you sure, you want to log out from this account?',
+            Text('Apakah Anda yakin ingin keluar dari akun ini?',
                 style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.textSecondary, height: 1.5)),
             const SizedBox(height: 24),
             Row(
@@ -146,16 +190,19 @@ class _LogoutDialog extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    child: Text('Cancel',
-                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    child: Text('Batal',
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),  
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(context).pop();
-                      context.go(AppRoutes.signIn);
+                      await authService.logout();
+                      if (context.mounted) {
+                        context.go(AppRoutes.login);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -163,7 +210,7 @@ class _LogoutDialog extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       elevation: 0,
                     ),
-                    child: Text('Log out',
+                    child: Text('Keluar',
                         style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: Colors.white)),
                   ),
                 ),

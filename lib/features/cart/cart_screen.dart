@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_router.dart';
 import '../../shared/models/cart_model.dart';
@@ -14,28 +15,18 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  final _cartService = CartService();
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
+    // Di sini bisa ditambahkan fetchCart dari API jika diperlukan
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (mounted) setState(() {});
+  void _removeItem(BuildContext context, String id) {
+    Provider.of<CartService>(context, listen: false).removeItem(id);
   }
 
-  void _removeItem(String id) {
-    setState(() => _cartService.removeItem(id));
-  }
-
-  void _toggleSelect(String id) {
-    setState(() => _cartService.toggleSelect(id));
+  void _toggleSelect(BuildContext context, String id) {
+    Provider.of<CartService>(context, listen: false).toggleSelect(id);
   }
 
   String _formatPrice(int price) {
@@ -47,8 +38,9 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _cartService.items;
-    final total = _cartService.totalPrice;
+    final cartService = Provider.of<CartService>(context);
+    final items = cartService.items;
+    final total = cartService.totalPrice;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -57,7 +49,7 @@ class _CartScreenState extends State<CartScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Cart',
+          'Keranjang Belanja',
           style: GoogleFonts.dmSans(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
@@ -140,8 +132,8 @@ class _CartScreenState extends State<CartScreen> {
               final item = items[index];
               return _CartCard(
                 item: item,
-                onRemove: () => _removeItem(item.id),
-                onToggle: () => _toggleSelect(item.id),
+                onRemove: () => _removeItem(context, item.id),
+                onToggle: () => _toggleSelect(context, item.id),
                 formatPrice: _formatPrice,
               );
             },

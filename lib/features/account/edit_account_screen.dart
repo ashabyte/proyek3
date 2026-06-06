@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../shared/widgets/app_widgets.dart';
+import '../../services/auth_service.dart';
 
 class EditAccountScreen extends StatefulWidget {
   const EditAccountScreen({super.key});
@@ -13,10 +17,20 @@ class EditAccountScreen extends StatefulWidget {
 
 class _EditAccountScreenState extends State<EditAccountScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController(text: 'John Doe');
-  final _emailCtrl = TextEditingController(text: 'johndoe@email.com');
-  final _phoneCtrl = TextEditingController(text: '+62 812 3456 7890');
-  bool _isLoading = false;
+  late TextEditingController _nameCtrl;
+  late TextEditingController _emailCtrl;
+  late TextEditingController _phoneCtrl;
+  File? _imageFile;
+  final _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    final user = Provider.of<AuthService>(context, listen: false).user;
+    _nameCtrl = TextEditingController(text: user?.name);
+    _emailCtrl = TextEditingController(text: user?.email);
+    _phoneCtrl = TextEditingController(text: user?.noTelp);
+  }
 
   @override
   void dispose() {
@@ -26,12 +40,30 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _save() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
+    // In a real app, you would upload the image to a server first
+    // For now, we'll just send the name and phone
+    final result = await authService.updateProfile(
+      nama: _nameCtrl.text,
+      noTelp: _phoneCtrl.text,
+      // fotoProfil: _imageFile?.path, // Logic for uploading would go here
+    );
+
+    if (mounted) {
+      if (result['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Profil berhasil diperbarui!',
@@ -42,12 +74,19 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
           ),
         );
         context.pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'])),
+        );
       }
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = Provider.of<AuthService>(context).isLoading;
+    final user = Provider.of<AuthService>(context).user;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -79,21 +118,31 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFB8A9E0),
                         borderRadius: BorderRadius.circular(45),
+                        image: _imageFile != null
+                            ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
+                            : (user?.fotoProfil != null
+                                ? DecorationImage(image: NetworkImage(user!.fotoProfil!), fit: BoxFit.cover)
+                                : null),
                       ),
-                      child: const Icon(Icons.person, size: 52, color: Colors.white),
+                      child: (_imageFile == null && user?.fotoProfil == null)
+                          ? const Icon(Icons.person, size: 52, color: Colors.white)
+                          : null,
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white, width: 2),
+                      child: GestureDetector(
+                        onTap: _pickImage,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(Icons.edit, size: 14, color: Colors.white),
                         ),
-                        child: const Icon(Icons.edit, size: 14, color: Colors.white),
                       ),
                     ),
                   ],
@@ -114,11 +163,7 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                 controller: _emailCtrl,
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Email tidak boleh kosong';
-                  if (!v.contains('@')) return 'Email tidak valid';
-                  return null;
-                },
+                readOnly: true, // Email usually cannot be changed easily
               ),
               const SizedBox(height: 16),
               _EditField(
@@ -127,20 +172,19 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                 controller: _phoneCtrl,
                 icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
-                validator: (v) => (v == null || v.isEmpty) ? 'No. telepon tidak boleh kosong' : null,
               ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _save,
+                  onPressed: isLoading ? null : _save,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: _isLoading
+                  child: isLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -165,6 +209,7 @@ class _EditField extends StatelessWidget {
   final IconData icon;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final bool readOnly;
 
   const _EditField({
     required this.label,
@@ -173,6 +218,7 @@ class _EditField extends StatelessWidget {
     required this.icon,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.readOnly = false,
   });
 
   @override
@@ -188,12 +234,16 @@ class _EditField extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
-          style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.textPrimary),
+          readOnly: readOnly,
+          style: GoogleFonts.dmSans(
+            fontSize: 14, 
+            color: readOnly ? AppColors.textHint : AppColors.textPrimary
+          ),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, size: 20, color: AppColors.textHint),
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: readOnly ? Colors.grey[100] : AppColors.surface,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),

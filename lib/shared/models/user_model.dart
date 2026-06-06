@@ -3,26 +3,38 @@ class UserModel {
   final String id;
   final String name;
   final String email;
+  final String? role;
+  final String? noTelp;
+  final String? fotoProfil;
   final String? avatarUrl;
 
   const UserModel({
     required this.id,
     required this.name,
     required this.email,
+    this.role,
+    this.noTelp,
+    this.fotoProfil,
     this.avatarUrl,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] ?? '',
-        name: json['name'] ?? '',
+        id: json['id']?.toString() ?? '',
+        name: json['nama'] ?? json['name'] ?? '',
         email: json['email'] ?? '',
+        role: json['role'],
+        noTelp: json['no_telp'],
+        fotoProfil: json['foto_profil'],
         avatarUrl: json['avatar_url'],
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'name': name,
+        'nama': name,
         'email': email,
+        'role': role,
+        'no_telp': noTelp,
+        'foto_profil': fotoProfil,
         'avatar_url': avatarUrl,
       };
 }
@@ -46,21 +58,21 @@ class ServiceModel {
   });
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) => ServiceModel(
-        id: json['id'] ?? '',
-        name: json['name'] ?? '',
-        description: json['description'] ?? '',
-        category: json['category'] ?? '',
-        price: (json['price'] as num?)?.toDouble() ?? 0,
-        imageUrl: json['image_url'],
+        id: json['id']?.toString() ?? '',
+        name: json['nama'] ?? json['name'] ?? '',
+        description: json['deskripsi'] ?? json['description'] ?? '',
+        category: json['kategori'] ?? json['category'] ?? '',
+        price: (json['harga'] as num?)?.toDouble() ?? (json['price'] as num?)?.toDouble() ?? 0,
+        imageUrl: json['gambar'] ?? json['image_url'],
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'name': name,
-        'description': description,
-        'category': category,
-        'price': price,
-        'image_url': imageUrl,
+        'nama': name,
+        'deskripsi': description,
+        'kategori': category,
+        'harga': price,
+        'gambar': imageUrl,
       };
 }
 
@@ -89,10 +101,10 @@ class BookingModel {
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) => BookingModel(
-        id: json['id'] ?? '',
-        serviceId: json['service_id'] ?? '',
+        id: json['id']?.toString() ?? '',
+        serviceId: json['service_id']?.toString() ?? '',
         serviceName: json['service_name'] ?? '',
-        userId: json['user_id'] ?? '',
+        userId: json['user_id']?.toString() ?? '',
         scheduledAt: DateTime.parse(
             json['scheduled_at'] ?? DateTime.now().toIso8601String()),
         status: BookingStatus.values.firstWhere(

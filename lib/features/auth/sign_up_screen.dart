@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_router.dart';
 import '../../shared/widgets/app_widgets.dart';
+import '../../services/auth_service.dart';
 
 
 class SignUpScreen extends StatefulWidget {
@@ -15,33 +17,45 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _namaCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
   bool _rememberMe = true;
-  bool _isLoading = false;
 
   @override
   void dispose() {
+    _namaCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmPassCtrl.dispose();
     super.dispose();
   }
 
-  void _signUp() {
+  void _signUp() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final result = await authService.register(
+      _namaCtrl.text,
+      _emailCtrl.text,
+      _passCtrl.text,
+    );
+
+    if (mounted) {
+      if (result['success']) {
         context.go(AppRoutes.home);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'])),
+        );
       }
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = Provider.of<AuthService>(context).isLoading;
     return Scaffold(
       backgroundColor: Colors.white,
       body: LayoutBuilder(
@@ -74,6 +88,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               height: 1.6),
                         ),
                         const SizedBox(height: 32),
+                        AppTextField(
+                          hint: 'Nama Lengkap',
+                          controller: _namaCtrl,
+                          validator: (v) => (v == null || v.isEmpty)
+                              ? 'Nama wajib diisi'
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
                         AppTextField(
                           hint: 'Email',
                           controller: _emailCtrl,
@@ -117,7 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         PrimaryButton(
                           label: 'Daftar',
                           onPressed: _signUp,
-                          isLoading: _isLoading,
+                          isLoading: isLoading,
                         ),
                         const SizedBox(height: 24),
                         RichText(

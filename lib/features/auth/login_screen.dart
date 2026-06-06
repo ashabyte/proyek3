@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_router.dart';
 import '../../shared/widgets/app_widgets.dart';
+import '../../services/auth_service.dart';
 
 
 class LoginScreen extends StatefulWidget {
@@ -18,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _rememberMe = true;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -27,19 +28,26 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final result = await authService.login(_emailCtrl.text, _passCtrl.text);
+
+    if (mounted) {
+      if (result['success']) {
         context.go(AppRoutes.home);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'])),
+        );
       }
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = Provider.of<AuthService>(context).isLoading;
     return Scaffold(
       backgroundColor: Colors.white,
       body: LayoutBuilder(
@@ -112,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         PrimaryButton(
                             label: 'Login',
                             onPressed: _login,
-                            isLoading: _isLoading),
+                            isLoading: isLoading),
                         const SizedBox(height: 20),
                         Center(
                           child: GestureDetector(
